@@ -86,6 +86,8 @@ namespace SteamBot
         public Inventory MyInventory;
         public Inventory OtherInventory;
 
+        public SteamTrade.TradeOffer.TradeUser tradeUser;
+
         private BackgroundWorker backgroundWorker;
 
         public Bot(Configuration.BotInfo config, string apiKey, UserHandlerCreator handlerCreator, bool debug = false, bool process = false)
@@ -341,6 +343,9 @@ namespace SteamBot
                         tradeManager.SetTradeTimeLimits(MaximumTradeTime, MaximiumActionGap, TradePollingInterval);
                         tradeManager.OnTimeout += OnTradeTimeout;
                         tradeManager.OnTradeEnded += OnTradeEnded;
+
+                        tradeUser = new SteamTrade.TradeOffer.TradeUser(sessionId, token);
+                        log.Warn("TradeUser loaded");
                         break;
                     }
                     else
