@@ -82,7 +82,7 @@ namespace SteamTrade.TradeOffer
                 data.Add("'tradeofferid_countered'", tradeId.ToString());
             }
 
-            string result = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/new/send", "GET", null, true);
+            string result = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/new/send", "POST", data, true);
             Console.WriteLine(result);
         }
 
