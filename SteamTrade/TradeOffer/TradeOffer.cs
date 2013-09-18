@@ -13,9 +13,9 @@ namespace SteamTrade.TradeOffer
     public class TradeOffer
     {
         private TradeUser tradeUser;
-        private String partnerName;
+        private string partnerName;
         public SteamID partner;
-        public string sessionId;
+        public string sessionID { get; set; }
         private string inventoryLoadUrl;
         private string partnerInventoryLoadUrl;
         private int tradeId;
@@ -30,7 +30,7 @@ namespace SteamTrade.TradeOffer
             string html;
             if(id == 0)
             {
-                html = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/new/?partner=" + tradePartner.ConvertToUInt64(), "GET", null);
+                html = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/new/?partner=" + tradePartner.AccountID, "GET", null);
             }
             else
             {
@@ -44,24 +44,15 @@ namespace SteamTrade.TradeOffer
             foreach (Match match in pattern.Matches(html))
             {
                 globals.Add(match.Groups[1].Value, match.Groups[2].Value);
+                //Console.WriteLine(match.Groups[1].Value + ": " + match.Groups[2].Value);
             }
 
             tradeStatus = JsonConvert.DeserializeObject<TradeStatus>(globals["g_rgCurrentTradeStatus"]);
             partner = new SteamID(Convert.ToUInt64(JsonConvert.DeserializeObject(globals["g_ulTradePartnerSteamID"])));
             partnerName = JsonConvert.DeserializeObject(globals["g_strTradePartnerPersonaName"]).ToString();
-            sessionId = JsonConvert.DeserializeObject(globals["g_sessionID"]).ToString();
+            sessionID = JsonConvert.DeserializeObject(globals["g_sessionID"]).ToString();
             inventoryLoadUrl = JsonConvert.DeserializeObject(globals["g_strInventoryLoadURL"]).ToString();
             partnerInventoryLoadUrl = JsonConvert.DeserializeObject(globals["g_strTradePartnerInventoryLoadURL"]).ToString();
-
-            String tradeOfferMessage = "";
-            String json_tradeoffer = JsonConvert.SerializeObject(tradeStatus, Formatting.None, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.Objects });
-
-            NameValueCollection basic = new NameValueCollection();
-            basic.Add("sessionid", sessionId);
-            basic.Add("partner", partner.ToString());
-            basic.Add("tradeoffermessage", tradeOfferMessage);
-            basic.Add("json_tradeoffer", json_tradeoffer);
-            basic.Add("tradeofferid_countered", id.ToString());
         }
 
         public void update(string message)
@@ -69,17 +60,24 @@ namespace SteamTrade.TradeOffer
             tradeStatus.version++;
             tradeStatus.newversion = true;
 
-            String json_tradeoffer = JsonConvert.SerializeObject(tradeStatus, Formatting.None, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.Objects });
+            string json_tradeoffer = JsonConvert.SerializeObject(tradeStatus, Formatting.None, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.None });
+
+            Console.WriteLine(json_tradeoffer);
 
             NameValueCollection data = new NameValueCollection();
-            data.Add("sessionid", sessionId);
-            data.Add("partner", partner.AccountID.ToString());
+            data.Add("sessionid", sessionID);
+            data.Add("partner", partner.ToString());
             data.Add("tradeoffermessage", message);
             data.Add("json_tradeoffer", json_tradeoffer.ToString());
 
+            Console.WriteLine("sessionid: " + sessionID);
+            Console.WriteLine("partner: " + partner.ConvertToUInt64());
+            Console.WriteLine("tradeoffermessage: " + message);
+            Console.WriteLine("json_tradeoffer: " + json_tradeoffer.ToString());
+
             if (tradeId != 0)
             {
-                data.Add("'tradeofferid_countered'", tradeId.ToString());
+                data.Add("tradeofferid_countered", tradeId.ToString());
             }
 
             string result = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/new/send", "POST", data, true);
@@ -92,34 +90,45 @@ namespace SteamTrade.TradeOffer
             public int version { get; set; }
             public TradeStatusUser me { get; set; }
             public TradeStatusUser them { get; set; }
+
+            public TradeStatus()
+            {
+                version = 0;
+                me = new TradeStatusUser();
+                them = new TradeStatusUser();
+            }
         }
 
         public class TradeStatusUser
         {
-            Boolean ready { get; set; }
-            public List<TradeAsset> assets = new List<TradeAsset>();
+            public bool ready { get; set; }
+            public List<TradeAsset> assets { get; set; }
+            public List<string> currency { get; set; }
+
+            public TradeStatusUser()
+            {
+                assets = new List<TradeAsset>();
+                ready = false;
+                currency = new List<string>();
+            }
 
             public sInventory.Description getDescription(TradeAsset tradeAsset)
             {
                 return new sInventory().getDescription(tradeAsset);
             }
 
-            public Boolean addItem(sInventory.Item item)
-            {
-                return addItem(item.inventory.appId, item.inventory.contextId, item.id);
-            }
-
-            public bool addItem(long appId, long contextId, String id)
+            public bool addItem(int appId, int contextId, string id, int amount)
             {
                 TradeAsset tradeAsset = new TradeAsset();
                 tradeAsset.appid = appId;
                 tradeAsset.contextid = contextId;
                 tradeAsset.assetid = Convert.ToUInt64(id);
+                tradeAsset.amount = amount;
                 addItem(tradeAsset);
                 return true;
             }
 
-            public Boolean addItem(TradeAsset asset)
+            private bool addItem(TradeAsset asset)
             {
                 if (!assets.Contains(asset))
                 {
@@ -129,7 +138,7 @@ namespace SteamTrade.TradeOffer
                 return false;
             }
 
-            public Boolean removeItem(TradeAsset asset)
+            public bool removeItem(TradeAsset asset)
             {
                 if (assets.Contains(asset))
                 {
@@ -139,7 +148,7 @@ namespace SteamTrade.TradeOffer
                 return false;
             }
 
-            public Boolean containsItem(int appId, int contextId, ulong assetId)
+            public bool containsItem(int appId, int contextId, ulong assetId)
             {
                 foreach (TradeAsset tradeAsset in assets)
                 {
@@ -162,30 +171,45 @@ namespace SteamTrade.TradeOffer
         {
             public class Item
             {
-                public String id { get; set; }
-                public String classid { get; set; }
-                public String instanceid { get; set; }
-                public String amount { get; set; }
-                public String pos { get; set; }
+                public string id { get; set; }
+                public string classid { get; set; }
+                public string instanceid { get; set; }
+                public int amount { get; set; }
+                public string pos { get; set; }
                 public Description description { get; set; }
                 public sInventory inventory { get; set; }
+
+                public Item()
+                {
+                    description = new Description();
+                    inventory = new sInventory();
+                }
             }
 
             public class Description
             {
-                public String appid { get; set; }
-                public String classid { get; set; }
-                public String instanceid { get; set; }
-                public String name { get; set; }
-                public List<Dictionary<String, String>> tags = new List<Dictionary<String, String>>();
-                public Dictionary<String, String> app_data = new Dictionary<String, String>();
+                public int appid { get; set; }
+                public string classid { get; set; }
+                public string instanceid { get; set; }
+                public string name { get; set; }
+                public List<Dictionary<string, string>> tags { get; set; }
+                public Dictionary<string, string> app_data { get; set; }
+
+                public Description()
+                {
+                    tags = new List<Dictionary<string, string>>();
+                    app_data = new Dictionary<string, string>();
+                }
             }
 
-            public Boolean success { get; set; }
-            public long appId { get; set; }
-            public long contextId { get; set; }
-            public Dictionary<String, Item> rgInventory = new Dictionary<string,Item>();
-            public Dictionary<String, Description> rgDescriptions = new Dictionary<string,Description>();
+            public IDictionary<string, Item> rgInventory { get; set; }
+            public IDictionary<string, Description> rgDescriptions { get; set; }
+
+            public sInventory()
+            {
+                rgInventory = new Dictionary<string, Item>();
+                rgDescriptions = new Dictionary<string, Description>();
+            }
 
             public void updateItems()
             {
@@ -211,13 +235,12 @@ namespace SteamTrade.TradeOffer
         {
             public sInventory Initialize(SteamID id, long appid, long contextid)
             {
-                string url = String.Format("http://steamcommunity.com/profiles/{0}/inventory/json/{1}/{2}", id.ConvertToUInt64(), appid, contextid);
+                string url = string.Format("http://steamcommunity.com/profiles/{0}/inventory/json/{1}/{2}", id.ConvertToUInt64(), appid, contextid);
 
                 url = SteamWeb.Fetch(url, "GET", null, null, false);
                 if (url != null)
                 {
-                    var json = JsonConvert.DeserializeObject<sInventory>(url);
-                    return json;
+                    return JsonConvert.DeserializeObject<sInventory>(url);
                 }
                 else
                 {

@@ -64,10 +64,19 @@ namespace SteamTrade.TradeOffer
                 requestStream.Write(dataBytes, 0, dataBytes.Length);
             }
 
-            Console.WriteLine("Before end");
-
             // Get the response
-            return request.GetResponse() as HttpWebResponse;
+            try
+            {
+                return request.GetResponse() as HttpWebResponse;
+            }
+            catch (WebException we)
+            {
+                if (we.Response != null)
+                {
+                    return (HttpWebResponse)we.Response;
+                }
+                throw;
+            }
         }
 
         public TradeOffer getTrade(int id)
@@ -78,11 +87,6 @@ namespace SteamTrade.TradeOffer
         public TradeOffer newTrade(SteamID partner){
             TradeOffer trade = new TradeOffer(this, 0, partner);
             return trade;
-        }
-
-        public static void SubmitCookies(CookieContainer cookies)
-        {
-            SteamWeb.SubmitCookies(cookies);
         }
     }
 }
