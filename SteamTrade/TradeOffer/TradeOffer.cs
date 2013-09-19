@@ -108,7 +108,7 @@ namespace SteamTrade.TradeOffer
             }
             else
             {
-                Console.WriteLine("You cannot accept your own trade");
+                Console.WriteLine("You cannot decline your own trade");
             }
         }
 
