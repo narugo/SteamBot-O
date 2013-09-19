@@ -44,7 +44,6 @@ namespace SteamTrade.TradeOffer
             foreach (Match match in pattern.Matches(html))
             {
                 globals.Add(match.Groups[1].Value, match.Groups[2].Value);
-                //Console.WriteLine(match.Groups[1].Value + ": " + match.Groups[2].Value);
             }
 
             tradeStatus = JsonConvert.DeserializeObject<TradeStatus>(globals["g_rgCurrentTradeStatus"]);
