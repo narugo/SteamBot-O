@@ -66,7 +66,7 @@ namespace SteamTrade.TradeOffer
 
             NameValueCollection data = new NameValueCollection();
             data.Add("sessionid", sessionID);
-            data.Add("partner", partner.ToString());
+            data.Add("partner", partner.ConvertToUInt64().ToString());
             data.Add("tradeoffermessage", message);
             data.Add("json_tradeoffer", json_tradeoffer.ToString());
 
@@ -204,6 +204,7 @@ namespace SteamTrade.TradeOffer
 
             public IDictionary<string, Item> rgInventory { get; set; }
             public IDictionary<string, Description> rgDescriptions { get; set; }
+            public int contextid { get; set; }
 
             public sInventory()
             {
