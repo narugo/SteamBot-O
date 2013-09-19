@@ -13,45 +13,103 @@ namespace SteamTrade.TradeOffer
     public class TradeOffer
     {
         private TradeUser tradeUser;
-        private string partnerName;
+        public string partnerName;
         public SteamID partner;
-        public string sessionID { get; set; }
+        public string sessionID;
         private string inventoryLoadUrl;
         private string partnerInventoryLoadUrl;
         private int tradeId;
         public TradeStatus tradeStatus;
+        public string TradeMessage;
+        public List<int> tradeIds = new List<int>();
         public sInventoryLoad SInventory = new sInventoryLoad();
 
-        public TradeOffer(TradeUser tradeeUser, int id, SteamID tradePartner)
+        public TradeOffer(TradeUser tradeeUser, int id, SteamID tradePartner, SteamID tradeList = null)
         {
             tradeUser = tradeeUser;
             tradeId = id;
 
             string html;
-            if(id == 0)
+            bool getalts = false;
+            if(id == 0 && tradePartner != null)
             {
                 html = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/new/?partner=" + tradePartner.AccountID, "GET", null);
+                getalts = true;
+            }
+            else if (id == 0 && tradePartner == null)
+            {
+                Regex trade_list = new Regex("<div class=\"tradeoffer\" id=\"tradeofferid_(.+)\"", RegexOptions.Multiline);
+
+                html = tradeUser.Fetch("http://steamcommunity.com/profiles/" + tradeList.ConvertToUInt64().ToString() + "/tradeoffers/", "GET", null);
+
+                foreach (Match match in trade_list.Matches(html))
+                {
+                    tradeIds.Add(Convert.ToInt32(match.Groups[1].Value));
+                }
             }
             else
             {
                 html = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/" + id + "/", "GET", null);
+
+                Regex message_pattern = new Regex("<div class=\"included_trade_offer_note\">\\s+(.+)\\s+</div>", RegexOptions.Multiline);
+
+                foreach (Match match in message_pattern.Matches(html))
+                {
+                    TradeMessage = match.Groups[1].Value.Replace("\"", "");
+                }
+                getalts = true;
             }
 
-            Regex pattern = new Regex("^\\s*var\\s+(g_.+?)\\s+=\\s+(.+?);\\r?$", RegexOptions.Multiline);
-
-            IDictionary<string, string> globals = new Dictionary<string, string>();
-
-            foreach (Match match in pattern.Matches(html))
+            if (getalts == true)
             {
-                globals.Add(match.Groups[1].Value, match.Groups[2].Value);
-            }
+                Regex pattern = new Regex("^\\s*var\\s+(g_.+?)\\s+=\\s+(.+?);\\r?$", RegexOptions.Multiline);
 
-            tradeStatus = JsonConvert.DeserializeObject<TradeStatus>(globals["g_rgCurrentTradeStatus"]);
-            partner = new SteamID(Convert.ToUInt64(JsonConvert.DeserializeObject(globals["g_ulTradePartnerSteamID"])));
-            partnerName = JsonConvert.DeserializeObject(globals["g_strTradePartnerPersonaName"]).ToString();
-            sessionID = JsonConvert.DeserializeObject(globals["g_sessionID"]).ToString();
-            inventoryLoadUrl = JsonConvert.DeserializeObject(globals["g_strInventoryLoadURL"]).ToString();
-            partnerInventoryLoadUrl = JsonConvert.DeserializeObject(globals["g_strTradePartnerInventoryLoadURL"]).ToString();
+                IDictionary<string, string> globals = new Dictionary<string, string>();
+
+                foreach (Match match in pattern.Matches(html))
+                {
+                    globals.Add(match.Groups[1].Value, match.Groups[2].Value);
+                }
+
+                tradeStatus = JsonConvert.DeserializeObject<TradeStatus>(globals["g_rgCurrentTradeStatus"]);
+                partner = new SteamID(Convert.ToUInt64(JsonConvert.DeserializeObject(globals["g_ulTradePartnerSteamID"])));
+                partnerName = JsonConvert.DeserializeObject(globals["g_strTradePartnerPersonaName"]).ToString();
+                sessionID = JsonConvert.DeserializeObject(globals["g_sessionID"]).ToString();
+                inventoryLoadUrl = JsonConvert.DeserializeObject(globals["g_strInventoryLoadURL"]).ToString();
+                partnerInventoryLoadUrl = JsonConvert.DeserializeObject(globals["g_strTradePartnerInventoryLoadURL"]).ToString();
+            }
+        }
+
+        public void accept()
+        {
+            if (tradeId != 0)
+            {
+                NameValueCollection data = new NameValueCollection();
+                data.Add("sessionid", sessionID);
+                data.Add("tradeofferid", tradeId.ToString());
+
+                tradeUser.Fetch("http://steamcommunity.com/tradeoffer/" + tradeId.ToString() + "/accept", "POST", data, false);
+            }
+            else
+            {
+                Console.WriteLine("You cannot accept your own trade");
+            }
+        }
+
+        public void decline()
+        {
+            if (tradeId != 0)
+            {
+                NameValueCollection data = new NameValueCollection();
+                data.Add("sessionid", sessionID);
+                data.Add("tradeofferid", tradeId.ToString());
+
+                tradeUser.Fetch("http://steamcommunity.com/tradeoffer/" + tradeId.ToString() + "/decline", "POST", data, false);
+            }
+            else
+            {
+                Console.WriteLine("You cannot accept your own trade");
+            }
         }
 
         public void update(string message)
@@ -61,18 +119,11 @@ namespace SteamTrade.TradeOffer
 
             string json_tradeoffer = JsonConvert.SerializeObject(tradeStatus, Formatting.None, new JsonSerializerSettings() { PreserveReferencesHandling = PreserveReferencesHandling.None });
 
-            Console.WriteLine(json_tradeoffer);
-
             NameValueCollection data = new NameValueCollection();
             data.Add("sessionid", sessionID);
             data.Add("partner", partner.ConvertToUInt64().ToString());
             data.Add("tradeoffermessage", message);
-            data.Add("json_tradeoffer", json_tradeoffer.ToString());
-
-            Console.WriteLine("sessionid: " + sessionID);
-            Console.WriteLine("partner: " + partner.ConvertToUInt64());
-            Console.WriteLine("tradeoffermessage: " + message);
-            Console.WriteLine("json_tradeoffer: " + json_tradeoffer.ToString());
+            data.Add("json_tradeoffer", json_tradeoffer);
 
             if (tradeId != 0)
             {
@@ -80,7 +131,9 @@ namespace SteamTrade.TradeOffer
             }
 
             string result = tradeUser.Fetch("http://steamcommunity.com/tradeoffer/new/send", "POST", data, true);
-            Console.WriteLine(result);
+
+            if (result != "null" || result != null)
+                TradeMessage = message;
         }
 
         public class TradeStatus
@@ -203,7 +256,7 @@ namespace SteamTrade.TradeOffer
 
             public IDictionary<string, Item> rgInventory { get; set; }
             public IDictionary<string, Description> rgDescriptions { get; set; }
-            public int contextid { get; set; }
+            public int contextid;
 
             public sInventory()
             {
@@ -233,14 +286,17 @@ namespace SteamTrade.TradeOffer
 
         public class sInventoryLoad
         {
-            public sInventory Initialize(SteamID id, long appid, long contextid)
+            public sInventory Initialize(SteamID id, int appid, int contextid)
             {
                 string url = string.Format("http://steamcommunity.com/profiles/{0}/inventory/json/{1}/{2}", id.ConvertToUInt64(), appid, contextid);
 
                 url = SteamWeb.Fetch(url, "GET", null, null, false);
                 if (url != null)
                 {
-                    return JsonConvert.DeserializeObject<sInventory>(url);
+                    var json = JsonConvert.DeserializeObject<sInventory>(url);
+                    json.contextid = contextid;
+
+                    return json;
                 }
                 else
                 {

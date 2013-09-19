@@ -85,8 +85,12 @@ namespace SteamTrade.TradeOffer
         }
 
         public TradeOffer newTrade(SteamID partner){
-            TradeOffer trade = new TradeOffer(this, 0, partner);
-            return trade;
+            return new TradeOffer(this, 0, partner);
+        }
+
+        public TradeOffer getTrades(SteamID tradeList)
+        {
+            return new TradeOffer(this, 0, null, tradeList);
         }
     }
 }
