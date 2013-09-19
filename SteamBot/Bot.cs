@@ -345,7 +345,7 @@ namespace SteamBot
                         tradeManager.OnTradeEnded += OnTradeEnded;
 
                         tradeUser = new SteamTrade.TradeOffer.TradeUser(sessionId, token);
-                        log.Warn("TradeUser loaded");
+                        log.Success("TradeUser loaded");
                         break;
                     }
                     else
