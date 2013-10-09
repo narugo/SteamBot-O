@@ -16,6 +16,7 @@ namespace SteamBot
     {
         int BotUncommonAdded, UserUncommonAdded, userRareAdded = 0;
         static Test xxx = null;
+        JsonTest yyy;
         public TestUserHandler(Bot bot, SteamID sid)
             : base(bot, sid) 
         {
@@ -33,9 +34,12 @@ namespace SteamBot
         }
         public void ReInit()
         {
-            BotUncommonAdded = 0;
-            UserUncommonAdded = 0;
-            userRareAdded = 0;
+            var pollThread = new Thread(() =>
+                {
+                    yyy = JsonTest.FetchJsonTest(570, 2, OtherSID);
+                    Log.Warn("初始化完成");
+                });
+            pollThread.Start();
         }
 
 
@@ -61,9 +65,14 @@ namespace SteamBot
             //response.Close();
             //request.Abort();
             Log.Warn ( Convertvdf2json(result, outputpath, false)); */
-            xxx = Test.FetchSchema(Trade.CurrentSchema.ItemsGameUrl);
+            //xxx = Test.FetchSchema(Trade.CurrentSchema.ItemsGameUrl);
             
-            Log.Warn (xxx.Items["282"].Name);
+           // Log.Warn (xxx.Items["282"].Name);
+            string xxx = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
+            Log.Warn(xxx);
+            JsonTest yyy = JsonTest.FetchJsonTest(570, 2, OtherSID);
+            xxx = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
+            Log.Warn(xxx);
 
         }
         public static string Convertvdf2json(Stream inputstream, string outputpath, bool CompactJSON)
@@ -208,36 +217,10 @@ namespace SteamBot
           
         public override void OnTradeAddItem (Schema.Item schemaItem, Inventory.Item inventoryItem) 
         {
-            var item = Trade.CurrentSchema.GetItem(schemaItem.Defindex);//获取添加物品信息并赋予变量item
-            var dota2item = Trade.Dota2Schema.GetItem(schemaItem.Defindex);
-            /*if (dota2item.Item_set == null)
-            {
-                Trade.SendMessage("null");
-            }
-            else if (dota2item.Item_set == "")
-            {
-                Trade.SendMessage("空字符串");
-            }
-            else
-            {
-                Trade.SendMessage(dota2item.Item_set);
-            }
-            */
-            Trade.SendMessage(dota2item.Item_rarity + "   " + item.Defindex + "   " + dota2item.Prefab );
-            if (dota2item.Item_rarity == "uncommon" && ((dota2item.Prefab == "wearable" && dota2item.Item_set != null && !dota2item.Model_player.Contains("axe") && !dota2item.Model_player.Contains("witchdoctor") && !dota2item.Model_player.Contains("omniknight")) || dota2item.Prefab == "ward" || dota2item.Prefab == "hud_skin"))
-            {
-                UserUncommonAdded++;
-                Trade.SendMessage("机器人添加:" + "罕见 " + BotUncommonAdded + " 用户添加:" + "罕见 " + UserUncommonAdded + " 稀有 " + userRareAdded);
-            }
-            else if (dota2item.Item_rarity == "rare" && !(dota2item.Name.Contains("Taunt")) && !(dota2item.Name.Contains("Treasure")) && dota2item.Defindex !=10066)
-            {
-                userRareAdded++;
-                Trade.SendMessage("机器人添加:" + "罕见 " + BotUncommonAdded + " 用户添加:" + "罕见 " + UserUncommonAdded + " 稀有 " + userRareAdded);
-            }
-            else
-            {
-                Trade.SendMessage("你添加了一件我不支持的物品,我只支持套装散件的罕见及稀有 ");//不是卡片则提示用户，不做其他操作   
-            }
+
+            Log.Warn( inventoryItem.Id.ToString ());
+            JsonTest.ItemDescription itemde = yyy.GetItemDescription(inventoryItem.Id);
+            Log.Warn(itemde.type);
             
         }
         
