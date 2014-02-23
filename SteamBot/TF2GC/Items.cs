@@ -62,6 +62,7 @@ namespace SteamBot.TF2GC
 
         public static void AutoSetItemPositions(Bot bot)
         {
+            bot.SetGamePlaying(440);
             bot.GetInventory();
             List<int> usedPositions = new List<int>();
             List<Inventory.Item> itemsToBePlaced = new List<Inventory.Item>();
