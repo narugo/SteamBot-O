@@ -93,6 +93,9 @@ namespace SteamTrade
 
         public class Item
         {
+            public int AppId = 440;
+            public int ContextId = 2;
+
             [JsonProperty("id")]
             public ulong Id { get; set; }
 
@@ -129,8 +132,34 @@ namespace SteamTrade
             [JsonProperty("attributes")]
             public ItemAttribute[] Attributes { get; set; }
 
+            [JsonProperty ("inventory")]
+            public uint PositionClassesDescriptor { get; set; }
+
             [JsonProperty("contained_item")]
             public Item ContainedItem { get; set; }
+
+            public short InventoryPosition
+            {
+                get
+                {
+                    // check if item is placed correctly allready
+                    if (ClassesEquipped == -32768)
+                    {
+                        //Shift it left 16 bits to get rid of the classes-equipped portion, then shift it back 16 bits.
+                        return (short)((PositionClassesDescriptor << 16) >> 16);
+                    }
+                    return 0;
+                }
+            }
+
+            public short ClassesEquipped
+            {
+                get
+                {
+                    //Shift it right 16 bits to get rid of the inventory position part.
+                    return (short)(PositionClassesDescriptor >> 16);
+                }
+            }
         }
 
         public class ItemAttribute
