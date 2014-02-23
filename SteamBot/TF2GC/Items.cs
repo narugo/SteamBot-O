@@ -19,8 +19,9 @@ namespace SteamBot.TF2GC
         /// </remarks>
         public static void DeleteItem(Bot bot, ulong item)
         {
-            if (bot.CurrentGame != 440)
-                throw new Exception("SteamBot is not ingame with AppID 440; current AppID is " + bot.CurrentGame);
+             if (bot.CurrentGame != 440)
+                bot.SetGamePlaying(440);
+                //throw new Exception("SteamBot is not ingame with AppID 440; current AppID is " + bot.CurrentGame);
 
             var deleteMsg = new ClientGCMsg<MsgDelete>();
 
@@ -40,8 +41,9 @@ namespace SteamBot.TF2GC
         /// </remarks>
         public static void SetItemPosition(Bot bot, SteamTrade.Inventory.Item item, short position)
         {
-            if (bot.CurrentGame != 440)
-                throw new Exception ("SteamBot is not ingame with AppID 440; current AppID is " + bot.CurrentGame);
+             if (bot.CurrentGame != 440)
+                bot.SetGamePlaying(440);
+                //throw new Exception("SteamBot is not ingame with AppID 440; current AppID is " + bot.CurrentGame);
 
             byte[] bPos = BitConverter.GetBytes (position);
             byte[] bClass = BitConverter.GetBytes (-32768);
@@ -75,6 +77,7 @@ namespace SteamBot.TF2GC
                     itemsToBePlaced.Add(s);
                 }
             }
+            bot.log.Warn("Items to be placed: (" + itemsToBePlaced.Count + ")");
             if (bot.MyInventory.NumSlots > usedPositions.Count)
             {
                 usedPositions.Sort();
@@ -96,6 +99,7 @@ namespace SteamBot.TF2GC
                     }
                 }
                 bot.log.Success("Items placed in Inventory Successfully.");
+                bot.log.Success("Items to be placed: (" + itemsToBePlaced.Count + ")");
             }
         }
     }
