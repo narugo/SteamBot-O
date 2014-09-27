@@ -179,9 +179,9 @@ namespace SteamTrade
         /// This does the same as SteamWeb.DoLogin(), but without contacting the Steam Website.
         /// </summary> 
         /// <remarks>Should this one doesnt work anymore, use <see cref="SteamWeb.DoLogin"/></remarks>
-        public static bool Authenticate(SteamUser.LoginKeyCallback callback, SteamClient client, out string sessionId, out string token, string MyLoginKey)
+       public static bool Authenticate(string myUniqueId, SteamClient client, out string sessionId, out string token, out string tokensecure, string myLoginKey)
         {
-            sessionId = Convert.ToBase64String (Encoding.UTF8.GetBytes (callback.UniqueID.ToString ()));
+            sessionId = Convert.ToBase64String (Encoding.UTF8.GetBytes (myUniqueId));
             
             using (dynamic userAuth = WebAPI.GetInterface ("ISteamUserAuth"))
             {
@@ -197,7 +197,7 @@ namespace SteamTrade
                 
                 
                 byte[] loginKey = new byte[20];
-                Array.Copy(Encoding.ASCII.GetBytes(MyLoginKey), loginKey, MyLoginKey.Length);
+               Array.Copy(Encoding.ASCII.GetBytes(myLoginKey), loginKey, myLoginKey.Length);
                 
                 // aes encrypt the loginkey with our session key
                 byte[] cryptedLoginKey = CryptoHelper.SymmetricEncrypt (loginKey, sessionKey);
@@ -210,21 +210,29 @@ namespace SteamTrade
                         steamid: client.SteamID.ConvertToUInt64 (),
                         sessionkey: HttpUtility.UrlEncode (cryptedSessionKey),
                         encrypted_loginkey: HttpUtility.UrlEncode (cryptedLoginKey),
-                        method: "POST"
+                        method: "POST",
+                        secure: true
                         );
                 }
                 catch (Exception)
                 {
                     token = null;
+                    tokensecure = null;
                     return false;
                 }
                 
                 token = authResult ["token"].AsString ();
-                
+                tokensecure = authResult["tokensecure"].AsString();
                 return true;
             }
         }
-
+        public static bool VerifyCookies(CookieContainer cookies)
+        {
+          using (HttpWebResponse response = Request("http://steamcommunity.com/", "HEAD", null, cookies))
+            {
+               return !(response.Cookies["steamLogin"] != null && response.Cookies["steamLogin"].Value.Equals("deleted"));
+           }
+        }
         static void SubmitCookies (CookieContainer cookies)
         {
             HttpWebRequest w = WebRequest.Create ("https://steamcommunity.com/") as HttpWebRequest;
