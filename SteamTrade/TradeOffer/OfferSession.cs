@@ -15,6 +15,7 @@ namespace SteamTrade.TradeOffer
         public string SessionId { get; private set; }
 
         public string SteamLogin { get; private set; }
+         public string SteamLoginSecure { get; private set; }
 
         private TradeOfferWebAPI WebApi { get; set; }
 
@@ -22,12 +23,14 @@ namespace SteamTrade.TradeOffer
 
         internal const string SendUrl = "https://steamcommunity.com/tradeoffer/new/send";
 
-        public OfferSession(string sessionId, string token, TradeOfferWebAPI webApi)
+        public OfferSession(string sessionId, string token, string tokensecure TradeOfferWebAPI webApi)
         {
             Cookies.Add(new Cookie("sessionid", sessionId, String.Empty, "steamcommunity.com"));
             Cookies.Add(new Cookie("steamLogin", token, String.Empty, "steamcommunity.com"));
+            Cookies.Add(new Cookie("steamLoginSecure", tokensecure, String.Empty, "steamcommunity.com"));
             SessionId = sessionId;
             SteamLogin = token;
+            SteamLoginSecure = tokensecure;
             this.WebApi = webApi;
 
             JsonSerializerSettings = new JsonSerializerSettings();
