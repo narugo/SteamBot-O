@@ -480,6 +480,7 @@ void UserWebLogOn()
                  log.Success("User Authenticated!");
 
                  tradeManager = new TradeManager(apiKey, sessionId, token);
+                 tradeManager = new TradeOfferManager(apiKey, sessionId, token, tokensecure);
                  tradeManager.SetTradeTimeLimits(MaximumTradeTime, MaximiumActionGap, TradePollingInterval);
                  tradeManager.OnTimeout += OnTradeTimeout;
 
