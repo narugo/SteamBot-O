@@ -505,12 +505,12 @@ void UserWebLogOn()
          // We still haven't re-authenticated
          if (CookiesAreInvalid)
              return false;
-+
+
          // Construct cookie container
          CookieContainer cookies = new CookieContainer();
          cookies.Add(new Cookie("sessionid", sessionId, String.Empty, "steamcommunity.com"));
          cookies.Add(new Cookie("steamLogin", token, String.Empty, "steamcommunity.com"));
-+
+
          try
          {
              if (!SteamWeb.VerifyCookies(cookies))
