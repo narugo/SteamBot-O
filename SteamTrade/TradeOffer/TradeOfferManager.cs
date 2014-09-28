@@ -13,7 +13,7 @@ namespace SteamTrade.TradeOffer
         private string apiKey;
         private string sessionId;
         private string token;
-        private string tokensecure
+        private string tokensecure;
 
         private OfferSession session;
         private TradeOfferWebAPI webApi;
